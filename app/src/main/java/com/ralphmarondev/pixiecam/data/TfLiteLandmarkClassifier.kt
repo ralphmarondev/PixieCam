@@ -23,7 +23,9 @@ class TfLiteLandmarkClassifier(
         val baseOption = BaseOptions.builder()
             .setNumThreads(2)
             .build()
-        val options = ImageClassifier.ImageClassifierOptions.builder()
+
+        val option = ImageClassifier
+            .ImageClassifierOptions.builder()
             .setBaseOptions(baseOption)
             .setMaxResults(maxResult)
             .setScoreThreshold(threshold)
@@ -33,7 +35,7 @@ class TfLiteLandmarkClassifier(
             classifier = ImageClassifier.createFromFileAndOptions(
                 context,
                 "landmarks.tflite",
-                options
+                option
             )
         } catch (e: IllegalStateException) {
             e.printStackTrace()

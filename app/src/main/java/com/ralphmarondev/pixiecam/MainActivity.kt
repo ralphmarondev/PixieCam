@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.ralphmarondev.pixiecam.data.TfLiteLandmarkClassifier
 import com.ralphmarondev.pixiecam.domain.Classification
@@ -85,6 +87,10 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+
+                val viewModel: MainViewModel = viewModel()
+                val response by viewModel.response.collectAsState()
+                val triggered by viewModel.triggered.collectAsState()
 
                 var isSplashDone by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
@@ -156,6 +162,7 @@ class MainActivity : ComponentActivity() {
                                 actions = {
                                     IconButton(
                                         onClick = {
+                                            viewModel.toggleRotated()
                                             controller.cameraSelector =
                                                 if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
                                                     CameraSelector.DEFAULT_FRONT_CAMERA
@@ -195,9 +202,22 @@ class MainActivity : ComponentActivity() {
                                     .align(Alignment.BottomCenter)
                                     .padding(16.dp)
                             ) {
-                                classifications.forEach {
+                                if (!triggered) {
+                                    classifications.forEach {
+                                        Text(
+                                            text = it.name,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                                                .padding(8.dp),
+                                            textAlign = TextAlign.Center,
+                                            fontSize = 20.sp,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                    }
+                                } else {
                                     Text(
-                                        text = it.name,
+                                        text = response,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(MaterialTheme.colorScheme.secondaryContainer)
@@ -231,3 +251,22 @@ class MainActivity : ComponentActivity() {
         )
     }
 }
+//
+//[Opening Scene – App Launches]
+//🛠 I created PixieCam! 🎉 A cute AI-powered camera that (mostly) knows what it’s doing!
+//
+//[Camera Activates]
+//📸 Running on Jetpack Compose + TensorFlow Lite!
+//
+//[Face Detection Starts]
+//🤖 Detecting landmarks… kinda?
+//
+//[Funny Glitch or Misalignment]
+//😂 Uhh… that’s a face, right?
+//
+//[App Labels You]
+//😍 Look! It identifies me as cute!
+//
+//[Final Scene – PixieCam Logo or Outro]
+//✨ PixieCam: Smart, fun, and just a little bit confused!
+//
