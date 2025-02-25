@@ -10,6 +10,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture.OnImageCapturedCallback
 import androidx.camera.core.ImageCaptureException
@@ -27,16 +28,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Cameraswitch
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -58,7 +69,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
+        enableEdgeToEdge()
 
         if (!hasRequiredPermissions()) {
             ActivityCompat.requestPermissions(
@@ -68,27 +79,90 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PixieCamTheme {
+                val viewModel = viewModel<MainViewModel>()
+                val bitmaps by viewModel.bitmaps.collectAsState()
+                val showBottomSheet by viewModel.showBottomSheet.collectAsState()
+
                 val scope = rememberCoroutineScope()
-                val scaffoldState = rememberBottomSheetScaffoldState()
                 val controller = remember {
                     LifecycleCameraController(applicationContext).apply {
                         setEnabledUseCases(
-                            CameraController.VIDEO_CAPTURE or CameraController.IMAGE_CAPTURE
+                            CameraController.IMAGE_CAPTURE or CameraController.VIDEO_CAPTURE
                         )
                     }
                 }
-                val viewModel: MainViewModel = viewModel()
-                val bitmaps by viewModel.bitmaps.collectAsState()
 
-                BottomSheetScaffold(
-                    scaffoldState = scaffoldState,
-                    sheetPeekHeight = 0.dp,
-                    sheetContent = {
-                        PhotoBottomSheetContent(
-                            bitmaps = bitmaps,
-                            modifier = Modifier
-                                .fillMaxWidth()
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = "PixieCam"
+                                )
+                            },
+                            actions = {
+                                IconButton(
+                                    onClick = {}
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Settings,
+                                        contentDescription = "Settings"
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                                actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
+                    },
+                    bottomBar = {
+                        val items = listOf(
+                            NavItem(
+                                onClick = {
+                                    scope.launch {
+                                        viewModel.toggleShowBottomSheet()
+                                    }
+                                },
+                                label = "Show photos",
+                                imageVector = Icons.Outlined.Photo
+                            ),
+                            NavItem(
+                                onClick = {
+                                    takePhoto(
+                                        controller = controller,
+                                        onPhotoTaken = viewModel::onTakePhoto
+                                    )
+                                },
+                                label = "Capture photo",
+                                imageVector = Icons.Outlined.PhotoCamera
+                            ),
+                            NavItem(
+                                onClick = {
+                                    controller.cameraSelector = when (controller.cameraSelector) {
+                                        CameraSelector.DEFAULT_BACK_CAMERA -> CameraSelector.DEFAULT_FRONT_CAMERA
+                                        else -> CameraSelector.DEFAULT_BACK_CAMERA
+                                    }
+                                },
+                                label = "Switch camera",
+                                imageVector = Icons.Outlined.Cameraswitch
+                            )
+                        )
+                        NavigationBar {
+                            items.forEachIndexed { _, item ->
+                                NavigationBarItem(
+                                    selected = false,
+                                    onClick = { item.onClick() },
+                                    icon = {
+                                        Icon(
+                                            imageVector = item.imageVector,
+                                            contentDescription = item.label
+                                        )
+                                    }
+                                )
+                            }
+                        }
                     }
                 ) { innerPadding ->
                     Box(
@@ -101,68 +175,118 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxSize()
                         )
+                    }
+                }
 
+                if (showBottomSheet) {
+                    PhotoBottomSheetContent(
+                        bitmaps = bitmaps,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    fun Cameraxthingy(modifier: Modifier = Modifier) {
+        PixieCamTheme {
+            val scope = rememberCoroutineScope()
+            val scaffoldState = rememberBottomSheetScaffoldState()
+            val controller = remember {
+                LifecycleCameraController(applicationContext).apply {
+                    setEnabledUseCases(
+                        CameraController.VIDEO_CAPTURE or CameraController.IMAGE_CAPTURE
+                    )
+                }
+            }
+            val viewModel: MainViewModel = viewModel()
+            val bitmaps by viewModel.bitmaps.collectAsState()
+
+            BottomSheetScaffold(
+                scaffoldState = scaffoldState,
+                sheetPeekHeight = 0.dp,
+                sheetContent = {
+                    PhotoBottomSheetContent(
+                        bitmaps = bitmaps,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+                }
+            ) { innerPadding ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                ) {
+                    CameraPreview(
+                        controller = controller,
+                        modifier = Modifier
+                            .fillMaxSize()
+                    )
+
+                    IconButton(
+                        onClick = {
+                            controller.cameraSelector =
+                                if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+                                    CameraSelector.DEFAULT_FRONT_CAMERA
+                                } else {
+                                    CameraSelector.DEFAULT_BACK_CAMERA
+                                }
+                        },
+                        modifier = Modifier
+                            .offset(x = 16.dp, y = 32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Cameraswitch,
+                            contentDescription = "Switch camera"
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         IconButton(
                             onClick = {
-                                controller.cameraSelector =
-                                    if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-                                        CameraSelector.DEFAULT_FRONT_CAMERA
-                                    } else {
-                                        CameraSelector.DEFAULT_BACK_CAMERA
-                                    }
-                            },
-                            modifier = Modifier
-                                .offset(x = 16.dp, y = 32.dp)
+                                scope.launch {
+                                    scaffoldState.bottomSheetState.expand()
+                                }
+                            }
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.Cameraswitch,
-                                contentDescription = "Switch camera"
+                                imageVector = Icons.Outlined.Photo,
+                                contentDescription = "Open gallery"
                             )
                         }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            verticalAlignment = Alignment.CenterVertically
+                        IconButton(
+                            onClick = {
+                                takePhoto(
+                                    controller = controller,
+                                    onPhotoTaken = viewModel::onTakePhoto
+                                )
+                            }
                         ) {
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        scaffoldState.bottomSheetState.expand()
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Photo,
-                                    contentDescription = "Open gallery"
-                                )
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = "Take photo"
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                recordVideo(controller)
                             }
-                            IconButton(
-                                onClick = {
-                                    takePhoto(
-                                        controller = controller,
-                                        onPhotoTaken = viewModel::onTakePhoto
-                                    )
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.PhotoCamera,
-                                    contentDescription = "Take photo"
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    recordVideo(controller)
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Videocam,
-                                    contentDescription = "Record video"
-                                )
-                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Videocam,
+                                contentDescription = "Record video"
+                            )
                         }
                     }
                 }

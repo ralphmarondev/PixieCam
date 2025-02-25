@@ -10,7 +10,14 @@ class MainViewModel : ViewModel() {
     private val _bitmaps = MutableStateFlow<List<Bitmap>>(emptyList())
     val bitmaps = _bitmaps.asStateFlow()
 
+    private val _showBottomSheet = MutableStateFlow(false)
+    val showBottomSheet = _showBottomSheet.asStateFlow()
+
     fun onTakePhoto(bitmap: Bitmap) {
         _bitmaps.value += bitmap
+    }
+
+    fun toggleShowBottomSheet(){
+        _showBottomSheet.value = !_showBottomSheet.value
     }
 }
